@@ -33,13 +33,20 @@ class SamtoolsFlag:
     def bits(self):
         return self._bits
     @bits.setter
-    def bits(self, bits):
+    def bits(self, bits: Union[int, list]):
         # check validity:
         # Bit must be a list of 12 boolean values
+        b=bits # Backup value for raise error
         if isinstance(bits, int):
+            if bits < 0:
+                raise ValueError(
+                    f"SamtoolsFlag: Flag value must be a zero or positive value. Given flag: {b}"
+                )
             bits, r = self.flag_to_bits(bits)
             if r != 0:
-                raise ValueError(f"SamtoolsFlag: Invalid flag value: {bits}, remain residual: {r}")
+                raise ValueError(
+                    f"SamtoolsFlag: Invalid flag value: {b}.\n\tThe value cannot be fit to 12 bits information.\n\tRemain residual: {r}"
+                )
         if not isinstance(bits, list):
             raise ValueError("SamtoolksFlag: 'bits' attribute must be a list")
         if len(bits) != 12:
@@ -52,16 +59,34 @@ class SamtoolsFlag:
     def flag(self):
         return self.bits_to_flag(self.bits)
     @flag.setter
-    def flag(self, flag):
+    def flag(self, flag: int):
         # This make flag essentially the same as bits
         self.bits = flag
+    # Getter of individual bit number
+    @property 
+    def bit_comb(self):
+        return [2**i for i, bit in enumerate(self.bits) if bit]
+    @bit_comb.setter
+    def bit_comb(self, bit_comb: list):
+        if not isinstance(bit_comb, list):
+            raise ValueError("SamtoolsFlag: 'bit_comb' must be a list")
+        if not all(isinstance(bit, int) for bit in bit_comb):
+            raise ValueError("SamtoolsFlag: all element of 'bit_comb' must be integer")
+        # Check for redundancy
+        if len(bit_comb) != len(set(bit_comb)):
+            raise ValueError("SamtoolsFlag: 'bit_comb' must not have redundant values")
+        if len(bit_comb) > 12:
+            raise ValueError("SamtoolsFlag: 'bit_comb' can only have up to 12 elements")
+        if any(bit not in self.flag_list for bit in bit_comb):
+            raise ValueError("SamtoolsFlag: Invalid bit combination")
+        # Set through flag setter
+        self.flag = sum(bit_comb)
     # Define a method to convert flag to bits
     @staticmethod
     def flag_to_bits(flag: int) -> tuple:
         # NB: Static method don't have access to instance and class variables
-        # Reverse the order of flag list
         rev_flag_list=[1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
-        rev_flag_list.reverse()
+        rev_flag_list.reverse()  # Reverse the order of flag list
         bits = [False] * 12 # Set list corresponding to empty bits
         for i, f in enumerate(rev_flag_list):
             if flag >= f:
@@ -77,10 +102,48 @@ class SamtoolsFlag:
             if b:
                 flag += 2**i
         return flag
+    # Operation Overload
+    def __add__(self, other: Union[int, "SamtoolsFlag"]) -> "SamtoolsFlag":
+        if isinstance(other, int) or isinstance(other, list):
+            other = SamtoolsFlag(other)
+        elif not isinstance(other, SamtoolsFlag):
+            raise ValueError("SamtoolsFlag: Invalid operand")
+        bits = [a or b for a, b in zip(self.bits, other.bits)]
+        return SamtoolsFlag(bits)
+    # overload += operator
+    def __iadd__(self, other: Union[int, "SamtoolsFlag"]) -> "SamtoolsFlag":
+        self = self + other
+        return self
+    # Overload the - operator
+    # Not sure if this is biologically meaningful
+    def __sub__(self, other: Union["SamtoolsFlag", int, list]) -> "SamtoolsFlag":
+        if isinstance(other, int) or isinstance(other, list):
+            other = SamtoolsFlag(other)
+        elif not isinstance(other, SamtoolsFlag):
+            raise ValueError("SamtoolsFlag: Invalid operand")
+        bits = [a and not b for a, b in zip(self.bits, other.bits)]
+        return SamtoolsFlag(bits)
+    # overload 'in' operation
+    def __contains__(self, other: Union["SamtoolsFlag", int, list]) -> bool:
+        if isinstance(other, int) or isinstance(other, list):
+            other = SamtoolsFlag(other)
+        elif not isinstance(other, SamtoolsFlag):
+            raise ValueError("SamtoolsFlag: Invalid operand")
+        # For bit pair that is True in A, are they all True in B?
+        ans = all([b for a, b in zip(self.bits, other.bits) if a])
+        # alternative method
+        ans = (self + other).flag == self.flag
+        return ans
+    def __eq__(self, other: Union["SamtoolsFlag", int, list]) -> bool:
+        if isinstance(other, int) or isinstance(other, list):
+            other = SamtoolsFlag(other)
+        elif not isinstance(other, SamtoolsFlag):
+            raise ValueError("SamtoolsFlag: Invalid operand")
+        return self.flag == other.flag
 
 
 def main():
-    f = SamtoolsFlag(4)
+    f = SamtoolsFlag(49)
     f
     print(f)
     # Test setter
@@ -104,7 +167,32 @@ def main():
         f.flag = 5000
     except ValueError:
         print("set f.flag got value error as expected")
+    f1 = SamtoolsFlag(1)
+    f2 = SamtoolsFlag(2)
+    f3 = SamtoolsFlag(3)
+    f4 = SamtoolsFlag(4)
+    print(f"Flag 1+1 = {f1 + f1}")
+    print(f"Flag 1+2 = {f1 + f2}")
+    print(f"Flag 1+3 = {f1 + f3}")
+    print(f"Flag 1+4 = {f1 + f4}")
+    f0=f1
+    f0 += f2
+    print(f"flag 1 += 2 = {f0}")
+    # Subtraction
+    print(f"Flag 1-1 = {f1 - f1}")
+    print(f"Flag 2-1 = {f2 - f1}")
+    print(f"Flag 3-1 = {f3 - f1}")
+    print(f"Flag 4-1 = {f4 - f1}")
+    fx = SamtoolsFlag(235)
+    print(fx.bit_comb)
+    fx.bit_comb = [1, 4, 8]
+    print(fx.flag)
+    # fx.bit_comb = [1, 4, 8, 129] # 129 is not a valid bit
 
+
+# x = [True, True, False, False]
+# y = [True, False, True, False]
+# all([y for x, y in zip(x, y) if x])
 
 if __name__ == '__main__':
     main()
