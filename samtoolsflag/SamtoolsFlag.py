@@ -39,16 +39,15 @@ class SamtoolsFlag:
         # check validity:
         # Bit must be a list of 12 boolean values
         b=bits # Backup value for raise error
+        if isinstance(bits, bool):
+            # True, False can be interpreted as int
+            raise ValueError(f"A single boolean value: {bits} is invalid")
         if isinstance(bits, int):
             if bits < 0:
-                raise ValueError(
-                    f"SamtoolsFlag: Flag value must be a zero or positive value. Given flag: {b}"
-                )
+                raise ValueError(f"SamtoolsFlag: Flag value must be a zero or positive value. Given flag: {b}")
             bits, r = self.flag_to_bits(bits)
             if r != 0:
-                raise ValueError(
-                    f"SamtoolsFlag: Invalid flag value: {b}.\n\tThe value cannot be fit to 12 bits information.\n\tRemain residual: {r}"
-                )
+                raise ValueError(f"SamtoolsFlag: Invalid flag value: {b}.\n\tThe value cannot be fit to 12 bits information.\n\tRemain residual: {r}")
         if not isinstance(bits, list):
             raise ValueError("SamtoolksFlag: 'bits' attribute must be a list")
         if len(bits) != 12:
