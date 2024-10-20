@@ -64,6 +64,7 @@ def test_individual_bit():
 
 # Test all possible values:
 def test_all_values_init():
+    # Maximum value is 4095 - range function return 0:4096-1
     for i in range(4096):
         assert SamtoolsFlag(i).bits
 

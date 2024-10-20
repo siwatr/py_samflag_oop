@@ -103,7 +103,6 @@ class SamtoolsFlag:
             if b:
                 flag += 2**i
         return flag
-    # TEST:
     def explain(self):
         """Explain what's the current SAM flag means"""
         # if not isinstance(self, "SamtoolsFlag"):
