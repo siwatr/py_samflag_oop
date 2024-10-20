@@ -10,10 +10,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 # from src.SamtoolsFlag.SamtoolsFlag import SamtoolsFlag
 from SamtoolsFlag.SamtoolsFlag import SamtoolsFlag
+from SamtoolsFlag.SamtoolsFlag import SamtoolsBits
+# import SamtoolsFlag.SamtoolsFlag
 
 def test_class():
     assert isinstance(SamtoolsFlag(1), SamtoolsFlag)
-    assert isinstance(SamtoolsFlag(1).bits, list)
+    assert isinstance(SamtoolsFlag(1).bits, SamtoolsBits)
+    assert isinstance(SamtoolsFlag(1)._bits, SamtoolsBits)
+    assert isinstance(SamtoolsFlag(1)._bits._bits, list)
     assert all([isinstance(b, bool) for b in SamtoolsFlag(1).bits])
     assert isinstance(SamtoolsFlag(1).flag, int)
     assert isinstance(SamtoolsFlag(0).bit_comb, list)

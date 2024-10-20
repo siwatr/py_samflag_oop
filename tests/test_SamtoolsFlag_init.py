@@ -16,6 +16,7 @@ def test_init_int():
     assert SamtoolsFlag(0).bits == [False]*12
     assert SamtoolsFlag(4095).bits == [True]*12
 
+
 def test_init_boolList():
     assert SamtoolsFlag([True] * 12).bits == [True] * 12
     assert SamtoolsFlag([False] * 12).bits == [False] * 12
@@ -27,6 +28,7 @@ def test_init_boolList():
             with pytest.raises(ValueError):
                 SamtoolsFlag(b)
 
+
 def test_init_int_vs_list():
     b = [False]*12
     for i in range(12):
@@ -35,6 +37,7 @@ def test_init_int_vs_list():
         b2 = SamtoolsFlag(b.copy()).bits
         b[i] = False
         assert b1 == b2
+
 
 def test_individual_bit():
     # DEPRECIATED: explicatly define and test each bit -> Switch to use the loop version
@@ -62,11 +65,13 @@ def test_individual_bit():
     for i in range(len(B)):
         assert SamtoolsFlag(2**i).bits == B[i]
 
+
 # Test all possible values:
 def test_all_values_init():
     # Maximum value is 4095 - range function return 0:4096-1
     for i in range(4096):
         assert SamtoolsFlag(i).bits
+
 
 def test_neg_init():
     with pytest.raises(ValueError):
@@ -74,12 +79,14 @@ def test_neg_init():
     with pytest.raises(ValueError):
         SamtoolsFlag(-20)
 
+
 def test_big_value():
     # Maximum value is 4095
     with pytest.raises(ValueError):
         SamtoolsFlag(4096)
     with pytest.raises(ValueError):
         SamtoolsFlag(5000)
+
 
 def test_type():
     with pytest.raises(ValueError):

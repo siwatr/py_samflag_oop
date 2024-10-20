@@ -1,6 +1,64 @@
 #!/usr/bin/env python3
 
+
 from typing import Union
+import copy
+# Define a class SamtoolsBits to handle the bit part of the SamtoolsFlag
+class SamtoolsBits:
+    # A subclass of SamtoolsFlag
+    # On the surface SamtoolsBits should behave like a list
+    def __init__(self, bits):
+        self.bits = bits
+    @staticmethod
+    def validate_bits(bits):
+        valid=False
+        if not isinstance(bits, list):
+            raise ValueError("'bits' must be a list type")
+        if len(bits) != 12:
+            raise ValueError("'bits' must have 12 elements")
+        if not all(isinstance(item, bool) for item in bits):
+            raise ValueError("'bits' must be a list of 12 boolean values")
+        else:
+            # print("Valid bits") # for debugging
+            valid=True
+        return valid
+    def validate(self):
+        valid = self.validate_bits(self.bits)
+        return valid
+    @property
+    def bits(self):
+        return self._bits
+    @bits.setter
+    def bits(self, bits):
+        if(isinstance(bits, SamtoolsBits)):
+            bits = bits._bits.copy() # Use copy function to avoid reference
+        if self.validate_bits(bits):
+            self._bits = bits
+    # Subsetting methods
+    def __getitem__(self, index):
+        return self.bits[index]
+    def __setitem__(self, index, value):
+        # print("Set bit from index") # For debugging
+        bits = self._bits.copy()
+        bits[index] = value
+        if self.validate_bits(bits):
+            self._bits = bits
+    def __len__(self):
+        return len(self.bits)
+    def __repr__(self):
+        return repr(self.bits)
+    def __eq__(self, other) -> bool:
+        if isinstance(other, SamtoolsBits):
+            return self._bits == other._bits
+        else:
+            return self._bits == other
+    # When we want to copy the object
+    def __copy__(self):
+        return SamtoolsBits(copy.deepcopy(self._bits))
+    def copy(self):
+        return self.__copy__()
+
+
 # Define class SamtoolsFlag to handle samtools flag values
 class SamtoolsFlag:
     # Declare a class variables:
@@ -22,8 +80,8 @@ class SamtoolsFlag:
     # build a dictionary from flag_list (keys) and bit_info (values)
     bit_info_dict = dict(zip(flag_list, bit_info))
     def __init__(self, bits: Union[int, list]=[False]*12):
-        # NB: Bit is the only representation of the flag in this class
-        # the flag property is just a getter for the bits
+        # Representing Samtools flag as a list of 12 boolean values -> represented by SamtoolsBits class
+        # Other attributes, such as flag and bit_comb can be derived from this list
         self.bits = bits
     def __repr__(self):
         return f"SAM Flag: {self.flag}"
@@ -33,14 +91,13 @@ class SamtoolsFlag:
     # Define setter and getter
     @property
     def bits(self):
-        return self._bits
+        return self._bits # should now be a SamtoolsBits object
     @bits.setter
-    def bits(self, bits: Union[int, list]):
-        # check validity:
-        # Bit must be a list of 12 boolean values
+    def bits(self, bits: Union[int, list, SamtoolsBits]):
+        # Transform alternative input types to list, then feed to SamtoolsBits()
         b=bits # Backup value for raise error
         if isinstance(bits, bool):
-            # True, False can be interpreted as int
+            # NB: True, False can be interpreted as int, so we have to check this first
             raise ValueError(f"A single boolean value: {bits} is invalid")
         if isinstance(bits, int):
             if bits < 0:
@@ -48,13 +105,20 @@ class SamtoolsFlag:
             bits, r = self.flag_to_bits(bits)
             if r != 0:
                 raise ValueError(f"SamtoolsFlag: Invalid flag value: {b}.\n\tThe value cannot be fit to 12 bits information.\n\tRemain residual: {r}")
-        if not isinstance(bits, list):
-            raise ValueError("SamtoolksFlag: 'bits' attribute must be a list")
-        if len(bits) != 12:
-            raise ValueError("SamtoolksFlag: 'bits' must have 12 elements")
-        if not all(isinstance(bit, bool) for bit in bits):
-            raise ValueError("SamtoolksFlag: all element of 'bits' must be boolean")
-        self._bits = bits
+        # Set values
+        if isinstance(bits, list):
+            # DEPRECIATED: Validate give the list validation to SamtoolsBits class instead
+            # if len(bits) != 12:
+            #     raise ValueError("SamtoolksFlag: 'bits' must have 12 elements")
+            # if not all(isinstance(bit, bool) for bit in bits):
+            #     raise ValueError("SamtoolksFlag: all element of 'bits' must be boolean")
+            self._bits = SamtoolsBits(bits)
+        elif isinstance(bits, SamtoolsBits):
+            bits.validate() # just to be sure
+            self._bits = bits
+        else:
+            raise ValueError("SamtoolksFlag: Please use variable from one of these classes to set the 'bits' attribute: int, list (12 boolean elements), and SamtoolsBits")
+    # No need to set __getitem__ and __setitem__ for bits as this will be handled by SamtoolsBits class
     # Getter and setter for flag - another way to get bits
     @property
     def flag(self):
@@ -148,59 +212,8 @@ class SamtoolsFlag:
         elif not isinstance(other, SamtoolsFlag):
             raise ValueError("SamtoolsFlag: Invalid operand")
         return self.flag == other.flag
+    def __copy__(self):
+        return SamtoolsFlag(copy.deepcopy(self._bits))
+    def copy(self):
+        return self.__copy__()
 
-
-def main():
-    f = SamtoolsFlag(49)
-    f
-    print(f)
-    # Test setter
-    f.bits = 1
-    print(f)
-    f.bits = [True]*12
-    print(f)
-    print(f.flag)
-    print(f.bits)
-    f.flag = 12
-    print(f)
-    try: 
-        print(SamtoolsFlag(5000))
-    except ValueError:
-        print("Declare got value error as expected")
-    try: 
-        f.bits = 5000
-    except ValueError:
-        print("set f.bits got value error as expected")
-    try: 
-        f.flag = 5000
-    except ValueError:
-        print("set f.flag got value error as expected")
-    f1 = SamtoolsFlag(1)
-    f2 = SamtoolsFlag(2)
-    f3 = SamtoolsFlag(3)
-    f4 = SamtoolsFlag(4)
-    print(f"Flag 1+1 = {f1 + f1}")
-    print(f"Flag 1+2 = {f1 + f2}")
-    print(f"Flag 1+3 = {f1 + f3}")
-    print(f"Flag 1+4 = {f1 + f4}")
-    f0=f1
-    f0 += f2
-    print(f"flag 1 += 2 = {f0}")
-    # Subtraction
-    print(f"Flag 1-1 = {f1 - f1}")
-    print(f"Flag 2-1 = {f2 - f1}")
-    print(f"Flag 3-1 = {f3 - f1}")
-    print(f"Flag 4-1 = {f4 - f1}")
-    fx = SamtoolsFlag(235)
-    print(fx.bit_comb)
-    fx.bit_comb = [1, 4, 8]
-    print(fx.flag)
-    # fx.bit_comb = [1, 4, 8, 129] # 129 is not a valid bit
-
-
-# x = [True, True, False, False]
-# y = [True, False, True, False]
-# all([y for x, y in zip(x, y) if x])
-
-if __name__ == '__main__':
-    main()
