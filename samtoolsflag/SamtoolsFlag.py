@@ -5,26 +5,28 @@ from typing import Union
 class SamtoolsFlag:
     # Declare a class variables:
     flag_list= [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
-    bit_info = {
-        1: "read paired",
-        2: "read mapped in proper pair",
-        4: "read unmapped",
-        8: "mate unmapped",
-        16: "read reverse strand",
-        32: "mate reverse strand",
-        64: "first in pair",
-        128: "second in pair",
-        256: "not primary alignment",
-        512: "read fails platform/vendor quality checks",
-        1024: "read is PCR or optical duplicate",
-        2048: "supplementary alignment",
-    }
+    bit_info = [
+        "read paired",
+        "read mapped in proper pair",
+        "read unmapped",
+        "mate unmapped",
+        "read reverse strand",
+        "mate reverse strand",
+        "first in pair",
+        "second in pair",
+        "not primary alignment",
+        "read fails platform/vendor quality checks",
+        "read is PCR or optical duplicate",
+        "supplementary alignment",
+    ]
+    # build a dictionary from flag_list (keys) and bit_info (values)
+    bit_info_dict = dict(zip(flag_list, bit_info))
     def __init__(self, bits: Union[int, list]=[False]*12):
         # NB: Bit is the only representation of the flag in this class
         # the flag property is just a getter for the bits
         self.bits = bits
     def __repr__(self):
-        return f"{self.flag}"
+        return f"SAM Flag: {self.flag}"
     def __str__(self):
         # turn true/false to 1/0
         return f"SAM flag: {self.flag}:\t{[int(bit) for bit in self.bits]}"
@@ -102,6 +104,14 @@ class SamtoolsFlag:
             if b:
                 flag += 2**i
         return flag
+    # TEST:
+    def explain(self):
+        """Explain what's the current SAM flag means"""
+        # if not isinstance(self, "SamtoolsFlag"):
+        #     raise ValueError("SamtoolsFlag: Invalid operand")
+        for i, bit in enumerate(self.bits):
+            if bit:
+                print(f"Bit {self.flag_list[i]}:\t{self.bit_info[i]}")
     # Operation Overload
     def __add__(self, other: Union[int, "SamtoolsFlag"]) -> "SamtoolsFlag":
         if isinstance(other, int) or isinstance(other, list):
